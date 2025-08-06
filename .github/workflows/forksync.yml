@@ -1,0 +1,30 @@
+            - name: Fork Sync2
+  # You may pin to the exact commit or the version.
+  # uses: zwping/fork-sync@7ad9681518d04008cc8f056abed8fefc2902e96d
+  uses: zwping/fork-sync@v1.6.5
+  with:
+    # Owner of the forked repository
+    owner: # optional
+    # Token for the github API
+    token: # optional, default is ${{ github.token }}
+    # Branch to track
+    head: # optional, default is master
+    # Branch to keep updated
+    base: # optional, default is master
+    # Merge method to use
+    merge_method: # optional, default is merge
+    # The title of the pull request
+    pr_title: # optional, default is Fork Sync: Update from parent repository
+    # The message in the pull request
+    pr_message: # optional
+    # Ignore Exceptions
+    ignore_fail: # optional
+    # Automatically approve pull request before merge
+    auto_approve: # optional
+    # Automatically merge the pull request
+    auto_merge: # optional, default is true
+    # Retry count
+    retries: # optional, default is 4
+    # Delay amount between retries
+    retry_after: # optional, default is 60
+          
