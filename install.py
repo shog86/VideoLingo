@@ -3,13 +3,13 @@ import platform
 import subprocess
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-ascii_logo = """
-__     ___     _            _     _                    
-\ \   / (_) __| | ___  ___ | |   (_)_ __   __ _  ___  
- \ \ / /| |/ _` |/ _ \/ _ \| |   | | '_ \ / _` |/ _ \ 
+ascii_logo = r"""
+__     ___     _            _     _
+\ \   / (_) __| | ___  ___ | |   (_)_ __   __ _  ___
+ \ \ / /| |/ _` |/ _ \/ _ \| |   | | '_ \ / _` |/ _ \
   \ V / | | (_| |  __/ (_) | |___| | | | | (_| | (_) |
-   \_/  |_|\__,_|\___|\___/|_____|_|_| |_|\__, |\___/ 
-                                          |___/        
+   \_/  |_|\__,_|\___|\___/|_____|_|_| |_|\__, |\___/
+                                          |___/
 """
 
 def install_package(*packages):
@@ -75,7 +75,52 @@ def check_ffmpeg():
         ))
         raise SystemExit(t("FFmpeg is required. Please install it and run the installer again."))
 
+def check_environment():
+    """Check if running in correct Python and conda environment"""
+    import sys
+
+    # Check Python version
+    python_version = sys.version_info
+    if python_version.major != 3 or python_version.minor != 10:
+        print(f"❌ Error: Python 3.10 is required, but you are using Python {python_version.major}.{python_version.minor}.{python_version.micro}")
+        print("\n📝 Please follow these steps:")
+        print("1. Create conda environment: conda create -n videolingo python=3.10.0 -y")
+        print("2. Activate environment: conda activate videolingo")
+        print("3. Run installer again: python install.py")
+        sys.exit(1)
+
+    # Check if in conda environment
+    conda_prefix = os.environ.get('CONDA_PREFIX')
+    if not conda_prefix:
+        print("⚠️  Warning: Not running in a conda environment")
+        print("\n📝 Recommended steps:")
+        print("1. Install Miniconda or Anaconda")
+        print("2. Create environment: conda create -n videolingo python=3.10.0 -y")
+        print("3. Activate environment: conda activate videolingo")
+        print("4. Run installer again: python install.py")
+
+        # Ask user if they want to continue anyway
+        response = input("\nDo you want to continue anyway? (not recommended) [y/N]: ")
+        if response.lower() != 'y':
+            sys.exit(1)
+    else:
+        # Check if in videolingo environment
+        env_name = os.path.basename(conda_prefix)
+        if env_name != 'videolingo':
+            print(f"⚠️  Warning: You are in conda environment '{env_name}', not 'videolingo'")
+            print("\n📝 Recommended steps:")
+            print("1. Create videolingo environment: conda create -n videolingo python=3.10.0 -y")
+            print("2. Activate environment: conda activate videolingo")
+            print("3. Run installer again: python install.py")
+
+            response = input("\nDo you want to continue anyway? (not recommended) [y/N]: ")
+            if response.lower() != 'y':
+                sys.exit(1)
+
 def main():
+    # Check environment before proceeding
+    check_environment()
+
     install_package("requests", "rich", "ruamel.yaml", "InquirerPy")
     from rich.console import Console
     from rich.panel import Panel
@@ -129,10 +174,104 @@ def main():
         console.print(Panel(t(f"{system_name} detected, installing CPU version of PyTorch... Note: it might be slow during whisperX transcription."), style="cyan"))
         subprocess.check_call([sys.executable, "-m", "pip", "install", "torch==2.1.2", "torchaudio==2.1.2"])
 
+    # macOS-specific: Install av and moviepy via conda to avoid FFmpeg compatibility issues
+    if platform.system() == 'Darwin':
+        console.print(Panel(t("🍎 Installing pkg-config, av, and moviepy via conda (required for macOS)..."), style="cyan"))
+        try:
+            # Check if running in conda environment
+            conda_prefix = os.environ.get('CONDA_PREFIX')
+            if conda_prefix:
+                # Check if av and moviepy are already installed with correct version
+                av_installed = False
+                moviepy_installed = False
+                av_needs_reinstall = False
+
+                try:
+                    import av
+                    # Check if av version is 11.x (required by faster-whisper 1.0.0)
+                    if av.__version__.startswith('11.'):
+                        av_installed = True
+                        console.print(Panel(t(f"✅ av {av.__version__} already installed"), style="green"))
+                    else:
+                        av_needs_reinstall = True
+                        console.print(Panel(t(f"⚠️ av {av.__version__} is incompatible, need to reinstall av 11.0.0"), style="yellow"))
+                        # Remove the incompatible version first
+                        console.print(Panel(t(f"🗑️ Removing av {av.__version__}..."), style="yellow"))
+                        subprocess.check_call(["conda", "remove", "av", "-y"])
+                except ImportError:
+                    pass
+
+                try:
+                    import moviepy
+                    moviepy_installed = True
+                    console.print(Panel(t(f"✅ moviepy already installed"), style="green"))
+                except ImportError:
+                    pass
+
+                # Install or reinstall packages via conda
+                packages_to_install = []
+                if not av_installed or av_needs_reinstall:
+                    # Force reinstall with specific versions to ensure compatibility
+                    packages_to_install.extend(["pkg-config", "av=11.0.0", "ffmpeg>=6.0.0,<7.0"])
+                if not moviepy_installed:
+                    packages_to_install.append("moviepy")
+
+                if packages_to_install:
+                    console.print(Panel(t(f"📦 Installing via conda: {', '.join(packages_to_install)}"), style="cyan"))
+                    # Use --force-reinstall to ensure clean installation
+                    subprocess.check_call(["conda", "install", "-c", "conda-forge", "--force-reinstall"] + packages_to_install + ["-y"])
+                    console.print(Panel(t("✅ Successfully installed packages via conda"), style="green"))
+
+                    # Verify installation
+                    try:
+                        import importlib
+                        if 'av' in sys.modules:
+                            importlib.reload(sys.modules['av'])
+                        import av
+                        console.print(Panel(t(f"✅ Verified: av {av.__version__} is now installed"), style="green"))
+                    except Exception as e:
+                        console.print(Panel(t(f"⚠️ Warning: Could not verify av installation: {e}"), style="yellow"))
+                else:
+                    console.print(Panel(t("✅ All required packages already installed"), style="green"))
+            else:
+                console.print(Panel(t("⚠️ Warning: Not running in conda environment. PyAV may fail to install."), style="yellow"))
+        except Exception as e:
+            console.print(Panel(t(f"⚠️ Warning: Failed to install via conda: {e}"), style="yellow"))
+
     @except_handler("Failed to install project")
     def install_requirements():
         console.print(Panel(t("Installing project in editable mode using `pip install -e .`"), style="cyan"))
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."], env={**os.environ, "PIP_NO_CACHE_DIR": "0", "PYTHONIOENCODING": "utf-8"})
+
+        # Prepare environment variables
+        env = {**os.environ, "PIP_NO_CACHE_DIR": "0", "PYTHONIOENCODING": "utf-8"}
+
+        # On macOS with conda, tell pip to skip av if already installed
+        constraint_file = None
+        if platform.system() == 'Darwin':
+            try:
+                import av
+                # Verify av version is 11.x (required by faster-whisper 1.0.0)
+                if not av.__version__.startswith('11.'):
+                    console.print(Panel(t(f"⚠️ Warning: av {av.__version__} may be incompatible with faster-whisper"), style="yellow"))
+
+                # Create a constraint file to prevent pip from reinstalling av
+                constraint_file = os.path.join(os.path.dirname(__file__), '.pip-constraints.txt')
+                with open(constraint_file, 'w') as f:
+                    # Use av 11.* wildcard to satisfy faster-whisper's av==11.* requirement
+                    f.write(f"av=={av.__version__}\n")
+                # Use both PIP_CONSTRAINT and PIP_BUILD_CONSTRAINT for compatibility
+                env['PIP_CONSTRAINT'] = constraint_file
+                env['PIP_BUILD_CONSTRAINT'] = constraint_file
+                console.print(Panel(t(f"🔧 Configured pip to use existing av {av.__version__} from conda"), style="cyan"))
+            except ImportError:
+                pass
+
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."], env=env)
+        finally:
+            # Clean up constraint file
+            if constraint_file and os.path.exists(constraint_file):
+                os.remove(constraint_file)
 
     @except_handler("Failed to install Noto fonts")
     def install_noto_font():

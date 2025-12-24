@@ -35,6 +35,8 @@ Key features:
 
 - 📝 Detailed logging with progress resumption
 
+- 🎵 Enhanced audio processing with pydub for better audio splitting
+
 Difference from similar projects: **Single-line subtitles only, superior translation quality, seamless dubbing experience**
 
 ## 🎥 Demo
@@ -74,6 +76,14 @@ https://github.com/user-attachments/assets/47d965b2-b4ab-4a0b-9d08-b49a7bf3508c
 > *Chinese uses a separate punctuation-enhanced whisper model, for now...
 
 **Translation supports all languages, while dubbing language depends on the chosen TTS method.**
+
+## 🔄 Recent Updates
+
+- **Improved Installation**: Added error handling to prevent initialization failures on first install
+- **Better Unicode Support**: Fixed Chinese and other non-ASCII character handling in translation prompts
+- **Enhanced Term Extraction**: Improved proper noun translation accuracy
+- **Audio Processing**: Upgraded to pydub for more reliable audio splitting
+- **UI Improvements**: Added JSON format support toggle in LLM settings
 
 ## Installation
 
