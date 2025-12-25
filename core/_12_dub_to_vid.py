@@ -67,7 +67,7 @@ def merge_video_audio():
     cmd = [
         'ffmpeg', '-y', '-i', VIDEO_FILE, '-i', background_file, '-i', normalized_dub_audio,
         '-filter_complex',
-        f'[0:v]scale={TARGET_WIDTH}:{TARGET_HEIGHT}:force_original_aspect_ratio=decrease,'
+        f'[0:v]scale={TARGET_WIDTH}:{TARGET_HEIGHT}:force_original_aspect_ratio=decrease:flags=bicubic,'
         f'pad={TARGET_WIDTH}:{TARGET_HEIGHT}:(ow-iw)/2:(oh-ih)/2,'
         f'{subtitle_filter}[v];'
         f'[1:a][2:a]amix=inputs=2:duration=first:dropout_transition=3[a]'
@@ -75,11 +75,11 @@ def merge_video_audio():
 
     if load_key("ffmpeg_gpu"):
         rprint("[bold green]Using GPU acceleration...[/bold green]")
-        cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_nvenc'])
+        cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
     else:
-        cmd.extend(['-map', '[v]', '-map', '[a]'])
+        cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '18', '-preset', 'slow'])
     
-    cmd.extend(['-c:a', 'aac', '-b:a', '96k', DUB_VIDEO])
+    cmd.extend(['-c:a', 'aac', '-b:a', '192k', DUB_VIDEO])
     
     subprocess.run(cmd)
     rprint(f"[bold green]Video and audio successfully merged into {DUB_VIDEO}[/bold green]")
