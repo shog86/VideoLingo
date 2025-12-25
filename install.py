@@ -81,10 +81,10 @@ def check_environment():
 
     # Check Python version
     python_version = sys.version_info
-    if python_version.major != 3 or python_version.minor != 10:
-        print(f"❌ Error: Python 3.10 is required, but you are using Python {python_version.major}.{python_version.minor}.{python_version.micro}")
+    if python_version.major != 3 or python_version.minor < 10:
+        print(f"❌ Error: Python >= 3.10 is required, but you are using Python {python_version.major}.{python_version.minor}.{python_version.micro}")
         print("\n📝 Please follow these steps:")
-        print("1. Create conda environment: conda create -n videolingo python=3.10.0 -y")
+        print("1. Create conda environment: conda create -n videolingo python=3.13 -y")
         print("2. Activate environment: conda activate videolingo")
         print("3. Run installer again: python install.py")
         sys.exit(1)
@@ -95,7 +95,7 @@ def check_environment():
         print("⚠️  Warning: Not running in a conda environment")
         print("\n📝 Recommended steps:")
         print("1. Install Miniconda or Anaconda")
-        print("2. Create environment: conda create -n videolingo python=3.10.0 -y")
+        print("2. Create environment: conda create -n videolingo python=3.13 -y")
         print("3. Activate environment: conda activate videolingo")
         print("4. Run installer again: python install.py")
 
@@ -109,7 +109,7 @@ def check_environment():
         if env_name != 'videolingo':
             print(f"⚠️  Warning: You are in conda environment '{env_name}', not 'videolingo'")
             print("\n📝 Recommended steps:")
-            print("1. Create videolingo environment: conda create -n videolingo python=3.10.0 -y")
+            print("1. Create videolingo environment: conda create -n videolingo python=3.13 -y")
             print("2. Activate environment: conda activate videolingo")
             print("3. Run installer again: python install.py")
 
@@ -168,110 +168,43 @@ def main():
     has_gpu = platform.system() != 'Darwin' and check_nvidia_gpu()
     if has_gpu:
         console.print(Panel(t("🎮 NVIDIA GPU detected, installing CUDA version of PyTorch..."), style="cyan"))
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "torch==2.0.0", "torchaudio==2.0.0", "--index-url", "https://download.pytorch.org/whl/cu118"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "torch", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cu118"])
     else:
         system_name = "🍎 MacOS" if platform.system() == 'Darwin' else "💻 No NVIDIA GPU"
-        console.print(Panel(t(f"{system_name} detected, installing CPU version of PyTorch... Note: it might be slow during whisperX transcription."), style="cyan"))
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "torch==2.1.2", "torchaudio==2.1.2"])
+        console.print(Panel(t(f"{system_name} detected, installing PyTorch..."), style="cyan"))
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "torch", "torchaudio"])
 
     # macOS-specific: Install av and moviepy via conda to avoid FFmpeg compatibility issues
     if platform.system() == 'Darwin':
-        console.print(Panel(t("🍎 Installing pkg-config, av, and moviepy via conda (required for macOS)..."), style="cyan"))
+        console.print(Panel(t("🍎 Installing dependencies via conda for macOS optimize..."), style="cyan"))
         try:
-            # Check if running in conda environment
             conda_prefix = os.environ.get('CONDA_PREFIX')
             if conda_prefix:
-                # Check if av and moviepy are already installed with correct version
-                av_installed = False
-                moviepy_installed = False
-                av_needs_reinstall = False
-
-                try:
-                    import av
-                    # Check if av version is 11.x (required by faster-whisper 1.0.0)
-                    if av.__version__.startswith('11.'):
-                        av_installed = True
-                        console.print(Panel(t(f"✅ av {av.__version__} already installed"), style="green"))
-                    else:
-                        av_needs_reinstall = True
-                        console.print(Panel(t(f"⚠️ av {av.__version__} is incompatible, need to reinstall av 11.0.0"), style="yellow"))
-                        # Remove the incompatible version first
-                        console.print(Panel(t(f"🗑️ Removing av {av.__version__}..."), style="yellow"))
-                        subprocess.check_call(["conda", "remove", "av", "-y"])
-                except ImportError:
-                    pass
-
-                try:
-                    import moviepy
-                    moviepy_installed = True
-                    console.print(Panel(t(f"✅ moviepy already installed"), style="green"))
-                except ImportError:
-                    pass
-
-                # Install or reinstall packages via conda
-                packages_to_install = []
-                if not av_installed or av_needs_reinstall:
-                    # Force reinstall with specific versions to ensure compatibility
-                    packages_to_install.extend(["pkg-config", "av=11.0.0", "ffmpeg>=6.0.0,<7.0"])
-                if not moviepy_installed:
-                    packages_to_install.append("moviepy")
-
-                if packages_to_install:
-                    console.print(Panel(t(f"📦 Installing via conda: {', '.join(packages_to_install)}"), style="cyan"))
-                    # Use --force-reinstall to ensure clean installation
-                    subprocess.check_call(["conda", "install", "-c", "conda-forge", "--force-reinstall"] + packages_to_install + ["-y"])
-                    console.print(Panel(t("✅ Successfully installed packages via conda"), style="green"))
-
-                    # Verify installation
-                    try:
-                        import importlib
-                        if 'av' in sys.modules:
-                            importlib.reload(sys.modules['av'])
-                        import av
-                        console.print(Panel(t(f"✅ Verified: av {av.__version__} is now installed"), style="green"))
-                    except Exception as e:
-                        console.print(Panel(t(f"⚠️ Warning: Could not verify av installation: {e}"), style="yellow"))
-                else:
-                    console.print(Panel(t("✅ All required packages already installed"), style="green"))
+                subprocess.check_call(["conda", "install", "-c", "conda-forge", "pkg-config", "ffmpeg>=6.0.0", "-y"])
+                console.print(Panel(t("✅ Successfully installed base packages via conda"), style="green"))
             else:
-                console.print(Panel(t("⚠️ Warning: Not running in conda environment. PyAV may fail to install."), style="yellow"))
+                console.print(Panel(t("⚠️ Warning: Not running in conda environment."), style="yellow"))
         except Exception as e:
             console.print(Panel(t(f"⚠️ Warning: Failed to install via conda: {e}"), style="yellow"))
 
     @except_handler("Failed to install project")
     def install_requirements():
-        console.print(Panel(t("Installing project in editable mode using `pip install -e .`"), style="cyan"))
-
-        # Prepare environment variables
+        console.print(Panel(t("Installing project requirements..."), style="cyan"))
         env = {**os.environ, "PIP_NO_CACHE_DIR": "0", "PYTHONIOENCODING": "utf-8"}
-
-        # On macOS with conda, tell pip to skip av if already installed
-        constraint_file = None
-        if platform.system() == 'Darwin':
-            try:
-                import av
-                # Verify av version is 11.x (required by faster-whisper 1.0.0)
-                if not av.__version__.startswith('11.'):
-                    console.print(Panel(t(f"⚠️ Warning: av {av.__version__} may be incompatible with faster-whisper"), style="yellow"))
-
-                # Create a constraint file to prevent pip from reinstalling av
-                constraint_file = os.path.join(os.path.dirname(__file__), '.pip-constraints.txt')
-                with open(constraint_file, 'w') as f:
-                    # Use av 11.* wildcard to satisfy faster-whisper's av==11.* requirement
-                    f.write(f"av=={av.__version__}\n")
-                # Use both PIP_CONSTRAINT and PIP_BUILD_CONSTRAINT for compatibility
-                env['PIP_CONSTRAINT'] = constraint_file
-                env['PIP_BUILD_CONSTRAINT'] = constraint_file
-                console.print(Panel(t(f"🔧 Configured pip to use existing av {av.__version__} from conda"), style="cyan"))
-            except ImportError:
-                pass
-
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."], env=env)
-        finally:
-            # Clean up constraint file
-            if constraint_file and os.path.exists(constraint_file):
-                os.remove(constraint_file)
+        
+        # 1. Install project in editable mode
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."], env=env)
+        
+        # 2. Re-install demucs from git with --no-deps to fix missing demucs.api and avoid version conflicts
+        console.print(Panel(t("Fixing Demucs API..."), style="cyan"))
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", "git+https://github.com/adefossez/demucs"], env=env)
+        
+        # 3. Update spacy models to match installed spacy version
+        console.print(Panel(t("Updating Spacy models..."), style="cyan"))
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_md"], env=env)
+        
+        # 4. Ensure torchaudio consistency (last step)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "torchaudio", "--no-deps"], env=env)
 
     @except_handler("Failed to install Noto fonts")
     def install_noto_font():
@@ -285,16 +218,78 @@ def main():
             cmd = ['sudo', 'yum', 'install', '-y', 'google-noto*']
             pkg_manager = "yum"
         else:
-            console.print("Warning: Unrecognized Linux distribution, please install Noto fonts manually", style="yellow")
+            console.print(t("Warning: Unrecognized Linux distribution, please install Noto fonts manually"), style="yellow")
             return
 
         subprocess.run(cmd, check=True)
-        console.print(f"✅ Successfully installed Noto fonts using {pkg_manager}", style="green")
+        console.print(t("✅ Successfully installed Noto fonts using {pkg_manager}").format(pkg_manager=pkg_manager), style="green")
 
     if platform.system() == 'Linux':
         install_noto_font()
     
     install_requirements()
+    
+    def pre_download_models():
+        """Optional step to pre-download models if HF token is provided"""
+        from rich.console import Console
+        from rich.panel import Panel
+        from translations.translations import translate as t
+        from core.utils.config_utils import load_key
+        console = Console()
+        
+        token = load_key("api.huggingface_token")
+        if not token or token == 'YOUR_HF_TOKEN' or len(token) < 10:
+            console.print(Panel(t("💡 Tip: Set your Hugging Face token in config.yaml to pre-download AI models during installation."), style="yellow"))
+            return
+
+        console.print(Panel(t("📥 Pre-downloading AI Models..."), style="cyan"))
+        
+        import subprocess
+        import sys
+        
+        download_script = """
+import os, sys
+import numpy as np
+import mlx_whisper
+import torch
+from pyannote.audio import Pipeline
+from core.utils.config_utils import load_key
+
+# Set HF_HOME to match backend
+MODEL_DIR = os.path.join(os.getcwd(), load_key("model_dir"))
+os.environ["HF_HOME"] = MODEL_DIR
+
+whisper_model = load_key("whisper.model")
+token = load_key("api.huggingface_token")
+
+print(f"Checking MLX-Whisper model: {whisper_model}")
+try:
+    # Trigger download with a tiny silent segment
+    mlx_whisper.transcribe(np.zeros(16000), path_or_hf_repo=whisper_model)
+    print("✅ MLX-Whisper model ready.")
+except Exception as e:
+    print(f"⚠️ MLX-Whisper download note: {e}")
+
+print("Checking Pyannote models...")
+try:
+    Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=token)
+    Pipeline.from_pretrained("pyannote/segmentation-3.0", use_auth_token=token)
+    print("✅ Pyannote models ready.")
+except Exception as e:
+    print(f"⚠️ Pyannote download failed: {e}")
+    print("Make sure you have accepted the terms on Hugging Face (see README).")
+"""
+        try:
+            tmp_file = "_tmp_download.py"
+            with open(tmp_file, "w") as f:
+                f.write(download_script)
+            subprocess.run([sys.executable, tmp_file], check=False)
+            if os.path.exists(tmp_file):
+                os.remove(tmp_file)
+        except Exception as e:
+            console.print(t("⚠️ Note: Manual model download failed: {e}").format(e=e), style="yellow")
+
+    pre_download_models()
     check_ffmpeg()
     
     # First panel with installation complete and startup command

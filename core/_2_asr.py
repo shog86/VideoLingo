@@ -23,15 +23,16 @@ def transcribe():
     # 4. Transcribe audio by clips
     all_results = []
     runtime = load_key("whisper.runtime")
-    if runtime == "local":
-        from core.asr_backend.whisperX_local import transcribe_audio as ts
-        rprint("[cyan]🎤 Transcribing audio with local model...[/cyan]")
-    elif runtime == "cloud":
-        from core.asr_backend.whisperX_302 import transcribe_audio_302 as ts
-        rprint("[cyan]🎤 Transcribing audio with 302 API...[/cyan]")
+    if runtime == "mlx":
+        from core.asr_backend.mlx_whisper_local import transcribe_audio as ts
+        rprint("[cyan]🎤 Transcribing audio with MLX-Whisper (Mac Optimized)...[/cyan]")
     elif runtime == "elevenlabs":
         from core.asr_backend.elevenlabs_asr import transcribe_audio_elevenlabs as ts
         rprint("[cyan]🎤 Transcribing audio with ElevenLabs API...[/cyan]")
+    else:
+        # Fallback to MLX if specified runtime is missing or legacy
+        from core.asr_backend.mlx_whisper_local import transcribe_audio as ts
+        rprint(f"[yellow]⚠️ Runtime '{runtime}' is no longer supported on this Mac-optimized version. Falling back to MLX...[/yellow]")
 
     for start, end in segments:
         result = ts(_RAW_AUDIO_FILE, vocal_audio, start, end)

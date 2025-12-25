@@ -1,5 +1,9 @@
 import streamlit as st
 import os, sys
+
+# Set environment variables to suppress warnings
+os.environ["TORCHAUDIO_USE_BACKEND_DISPATCHER"] = "1"
+
 from core.st_utils.imports_and_utils import *
 from core import *
 
@@ -20,7 +24,7 @@ def text_processing_section():
         <p style='font-size: 20px;'>
         {t("This stage includes the following steps:")}
         <p style='font-size: 20px;'>
-            1. {t("WhisperX word-level transcription")}<br>
+            1. {t("Word-level transcription")}<br>
             2. {t("Sentence segmentation using NLP and LLM")}<br>
             3. {t("Summarization and multi-step translation")}<br>
             4. {t("Cutting and aligning long subtitles")}<br>

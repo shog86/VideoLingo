@@ -11,10 +11,12 @@ display_language: "zh-CN"
 
 # API settings
 api:
-  key: 'your-api-key'
-  base_url: 'https://yunwu.ai'
-  model: 'gpt-4.1-2025-04-14'
+  key: 'YOUR_API_KEY'
+  base_url: 'https://api.openai.com/v1'
+  model: 'google/gemini-3-flash-preview'
   llm_support_json: false
+  # Hugging Face Access Token for pyannote/speaker-diarization-3.1
+  huggingface_token: 'YOUR_HF_TOKEN'
 # *Number of LLM multi-threaded accesses, set to 1 if using local LLM
 max_workers: 4
 
@@ -25,20 +27,20 @@ target_language: '简体中文'
 demucs: true
 
 whisper:
-  # ["large-v3", "large-v3-turbo"]. Note: for zh model will force to use Belle/large-v3
-  model: 'large-v3'
+  # ["large-v3", "large-v3-turbo"]. For MLX, standard names or path to MLX weights.
+  model: 'mlx-community/whisper-large-v3-turbo'
   # Whisper specified recognition language ISO 639-1
   language: 'en'
   detected_language: 'en'
-  # Whisper running mode ["local", "cloud", "elevenlabs"]. Specifies where to run, cloud uses 302.ai API
-  runtime: 'local'
+  # Whisper running mode ["mlx", "local", "cloud", "elevenlabs"]. mlx is HIGHLY recommended for Mac.
+  runtime: 'mlx'
   # 302.ai API key
   whisperX_302_api_key: 'your_302_api_key'
   # ElevenLabs API key (experimental)
   elevenlabs_api_key: 'your_elevenlabs_api_key'
 
 # Whether to burn subtitles into the video
-burn_subtitles: true
+burn_subtitles: false
 
 ## ======================== Advanced Settings ======================== ##
 # *🔬 h264_nvenc GPU acceleration for ffmpeg, make sure your GPU supports it

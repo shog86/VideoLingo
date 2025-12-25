@@ -29,6 +29,7 @@ def page_setting():
         c1, c2 = st.columns([4, 1])
         with c1:
             config_input(t("MODEL"), "api.model", help=t("click to check API validity")+ " 👉")
+            config_input(t("Hugging Face Token"), "api.huggingface_token", help=t("Required for pyannote speaker diarization"))
         with c2:
             if st.button("📡", key="api"):
                 st.toast(t("API Key is valid") if check_api() else t("API Key is invalid"), 
@@ -59,14 +60,12 @@ def page_setting():
                 update_key("whisper.language", langs[lang])
                 st.rerun()
 
-        runtime = st.selectbox(t("WhisperX Runtime"), options=["local", "cloud", "elevenlabs"], index=["local", "cloud", "elevenlabs"].index(load_key("whisper.runtime")), help=t("Local runtime requires >8GB GPU, cloud runtime requires 302ai API key, elevenlabs runtime requires ElevenLabs API key"))
+        runtime = st.selectbox(t("Whisper Runtime"), options=["mlx", "elevenlabs"], index=["mlx", "elevenlabs"].index(load_key("whisper.runtime")) if load_key("whisper.runtime") in ["mlx", "elevenlabs"] else 0, help=t("MLX is highly recommended for Apple Silicon (M1/M2/M3)."))
         if runtime != load_key("whisper.runtime"):
             update_key("whisper.runtime", runtime)
             st.rerun()
-        if runtime == "cloud":
-            config_input(t("WhisperX 302ai API"), "whisper.whisperX_302_api_key")
         if runtime == "elevenlabs":
-            config_input(("ElevenLabs API"), "whisper.elevenlabs_api_key")
+            config_input(t("ElevenLabs API"), "whisper.elevenlabs_api_key")
 
         with c2:
             target_language = st.text_input(t("Target Lang"), value=load_key("target_language"), help=t("Input any language in natural language, as long as llm can understand"))

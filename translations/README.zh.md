@@ -19,7 +19,7 @@ VideoLingo 是一站式视频翻译本地化配音工具，能够一键生成 Ne
 主要特点和功能：
 - 🎥 使用 yt-dlp 从 Youtube 链接下载视频
 
-- **🎙️ 使用 WhisperX 进行单词级和低幻觉字幕识别**
+- **🎙️ 使用 MLX-Whisper (Mac) 或 WhisperX 进行单词级和低幻觉字幕识别**
 
 - **📝 使用 NLP 和 AI 进行字幕分割**
 
@@ -77,6 +77,14 @@ https://github.com/user-attachments/assets/47d965b2-b4ab-4a0b-9d08-b49a7bf3508c
 
 **翻译语言支持所有语言，配音语言取决于选取的TTS。**
 
+## 🔄 最近更新
+
+- **Mac 优化**：全面迁移至 MLX-Whisper 和 Pyannote-audio 3.1，在苹果芯片（Apple Silicon）上速度极快。
+- **口癖过滤**：转录时通过引导词（Initial Prompt）自动识别并过滤“嗯”、“就是”、“那个”等啰嗦词汇。
+- **一键运行**：新增 Mac/Linux 端一键启动脚本 `OneKeyStart.sh`。
+- **安装增强**：`install.py` 现已支持在安装阶段预下载重型 AI 模型。
+- **兼容性修复**：全面支持 Python 3.13 并修复了 Demucs/Spacy 的安装冲突。
+
 ## 安装
 
 遇到问题？在[**这里**](https://share.fastgpt.in/chat/share?shareId=066w11n3r9aq6879r4z0v9rh)与我们的免费在线AI助手交流获取帮助。
@@ -99,16 +107,20 @@ git clone https://github.com/Huanshere/VideoLingo.git
 cd VideoLingo
 ```
 
-2. 安装依赖（需要 `python=3.10`）
+2. 安装依赖（需要 `python>=3.10`）
 
 ```bash
-conda create -n videolingo python=3.10.0 -y
+conda create -n videolingo python=3.13 -y
 conda activate videolingo
-python install.py
+python install.py   # 现已支持可选的模型预下载！
 ```
 
 3. 启动应用
-
+- Mac/Linux 用户：
+```bash
+./OneKeyStart.sh
+```
+- 或手动启动：
 ```bash
 streamlit run st.py
 ```
@@ -123,24 +135,24 @@ docker run -d -p 8501:8501 --gpus all videolingo
 
 ## API
 本项目支持 OpenAI-Like 格式的 api 和多种配音接口：
-- LLM: `claude-3-5-sonnet`, `gpt-4.1`, `deepseek-v3`, `gemini-2.0-flash`, ...（按效果排序，使用 gemini-2.5-flash 时需谨慎...）
-- WhisperX: 本地运行 WhisperX 或使用 302.ai API
+- LLM: `claude-3-5-sonnet`, `gpt-4.1`, `deepseek-v3`, `gemini-2.0-flash`, ...（按效果排序）
+- Whisper: 在 Mac 上推荐使用本地 MLX-Whisper，或使用 ElevenLabs ASR API
 - TTS: `azure-tts`, `openai-tts`, `siliconflow-fishtts`, **`fish-tts`**, `GPT-SoVITS`, `edge-tts`, `*custom-tts`(你可以在 custom_tts.py 中自定义 TTS!)
 
 > **注意：** VideoLingo 现已与 **[302.ai](https://gpt302.saaslink.net/C2oHR9)** 集成，**一个 API KEY** 即可同时支持 LLM、WhisperX 和 TTS！同时也支持完全本地部署，使用 Ollama 作为 LLM 和 Edge-TTS 作为配音，无需云端 API！
 
+> **重要：** 为了进行多角色识别，你必须：
+> 1. 创建一个 [Hugging Face Access Token](https://hf.co/settings/tokens)。
+> 2. 在 [pyannote/speaker-diarization-3.1](https://hf.co/pyannote/speaker-diarization-3.1) 和 [pyannote/segmentation-3.0](https://hf.co/pyannote/segmentation-3.0) 页面接受许可协议。
+> 3. 在 Streamlit 侧边栏或 `config.yaml` 中输入你的 token。
+
 详细的安装、API 配置、批量说明可以参见文档：[English](/docs/pages/docs/start.en-US.md) | [简体中文](/docs/pages/docs/start.zh-CN.md)
 
 ## 当前限制
-1. WhisperX 转录效果可能受到视频背景声影响，因为使用了 wav2vac 模型进行对齐。对于背景音乐较大的视频，请开启人声分离增强。另外，如果字幕以数字或特殊符号结尾，可能会导致提前截断，这是因为 wav2vac 无法将数字字符（如"1"）映射到其发音形式（"one"）。
-
-2. 使用较弱模型时容易在中间过程报错，这是因为对响应的 json 格式要求较为严格。如果出现此错误，请删除 `output` 文件夹后更换 llm 重试，否则重复执行会读取上次错误的响应导致同样错误。
-
-3. 配音功能由于不同语言的语速和语调差异，还受到翻译步骤的影响，可能不能 100% 完美，但本项目做了非常多的语速上的工程处理，尽可能保证配音效果。
-
-4. **多语言视频转录识别仅仅只会保留主要语言**，这是由于 whisperX 在强制对齐单词级字幕时使用的是针对单个语言的特化模型，会因为不认识另一种语言而删去。
-
-5. **无法多角色分别配音**，whisperX 的说话人区分效果不够好用。
+1. Whisper 转录效果可能受到视频背景声影响。对于背景音乐较大的视频，请开启人声分离增强。
+2. 使用较弱模型时容易在中间过程报错，这是因为对响应的 json 格式要求较为严格。如果出现此错误，请删除 `output` 文件夹后更换 llm 重试。
+3. 配音功能由于不同语言的语速和语调差异，可能不能 100% 完美。
+4. **多角色配音支持**：现已支持通过 Pyannote 进行多角色识别（实验性）。
 
 ## 📄 许可证
 
