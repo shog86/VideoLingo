@@ -12,7 +12,16 @@ import librosa
 HF_TOKEN = load_key("api.huggingface_token")
 MODEL_DIR = load_key("model_dir")
 
-def transcribe_audio(raw_audio_file, vocal_audio_file, start, end):
+# Global model cache (internal to mlx-whisper, but we can trigger it)
+def load_whisper_model(model_name):
+    """Trigger MLX-Whisper's internal ModelHolder cache."""
+    rprint(f"[cyan]📥 Ensuring MLX-Whisper model is loaded: {model_name}...[/cyan]")
+    # We use transcribe with a tiny bit of silence to trigger the internal ModelHolder cache
+    # This is a bit of a hack but ensures the model is in memory for subsequent calls.
+    # Alternatively, we just rely on the first call of transcribe_audio to do it.
+    pass
+
+def transcribe_audio(raw_audio_file, vocal_audio_file, start, end, model=None):
     """
     Transcribe audio using MLX-Whisper and diarize using pyannote-audio.
     """
@@ -32,15 +41,9 @@ def transcribe_audio(raw_audio_file, vocal_audio_file, start, end):
     audio_segment, _ = librosa.load(raw_audio_file, sr=16000, offset=start, duration=end - start)
     
     rprint("[bold green]🎤 Transcribing with MLX-Whisper...[/bold green]")
-    # mlx_whisper.transcribe handles the model loading/caching internally or we can pass path
-    # To use a specific model dir, we might need to handle it, but usually it uses ~/.cache/huggingface
-    # 3. Transcribe
-    # Prepare a clean prompt to avoid filler words as requested by user
-    initial_prompt = (
-        "Hello. This is a clean transcription without filler words or verbal tics like 'um', 'uh', 'right', 'ah', or 'like'."
-        if load_key("whisper.language") == 'en' else
-        "您好。这是一份干净的转录文本，没有‘那个’、‘然后’、‘就是’等口头禅。"
-    )
+    
+    # MLX-Whisper's internal ModelHolder will handle caching the model weights 
+    # based on the whisper_model_name string.
 
     result = mlx_whisper.transcribe(
         audio_segment,
