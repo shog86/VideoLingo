@@ -17,7 +17,7 @@ if platform.system() == 'Linux':
 # Mac OS has different font names
 elif platform.system() == 'Darwin':
     FONT_NAME = 'Arial Unicode MS'
-    TRANS_FONT_NAME = 'Arial Unicode MS'
+    TRANS_FONT_NAME = 'PingFang SC'
 
 SRC_FONT_COLOR = '&HFFFFFF'
 SRC_OUTLINE_COLOR = '&H000000'

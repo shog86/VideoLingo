@@ -86,6 +86,7 @@ def split_audio(audio_file: str, target_len: float = 30*60, win: float = 60) -> 
 
 def process_transcription(result: Dict) -> pd.DataFrame:
     all_words = []
+    expect_capital = True
     for segment in result['segments']:
         # Get speaker_id, if not exists, set to None
         speaker_id = segment.get('speaker_id', None)
@@ -98,6 +99,22 @@ def process_transcription(result: Dict) -> pd.DataFrame:
                 
             # ! For French, we need to convert guillemets to empty strings
             word["word"] = word["word"].replace('»', '').replace('«', '')
+
+            # Enforce sentence case: capitalize first letter if previous ended with punctuation
+            # Check for leading space which is common in Whisper output
+            curr_text = word["word"]
+            clean_text = curr_text.lstrip()
+            if clean_text and expect_capital:
+                # Calculate leading whitespace
+                leading_space = curr_text[:len(curr_text)-len(clean_text)]
+                word["word"] = leading_space + clean_text[0].upper() + clean_text[1:]
+            
+            # Update expectation for next word
+            # Check if current word ends with basic sentence delimiters
+            if clean_text.strip().endswith(('.', '?', '!')):
+                expect_capital = True
+            else:
+                expect_capital = False
             
             if 'start' not in word and 'end' not in word:
                 if all_words:
