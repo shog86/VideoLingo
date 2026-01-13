@@ -49,8 +49,7 @@ def transcribe_audio(raw_audio_file, vocal_audio_file, start, end, model=None):
         audio_segment,
         path_or_hf_repo=whisper_model_name,
         word_timestamps=True,
-        verbose=False,
-        initial_prompt=initial_prompt
+        verbose=False
     )
     
     transcribe_time = time.time() - transcribe_start_time

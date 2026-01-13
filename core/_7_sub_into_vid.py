@@ -36,7 +36,10 @@ TRANS_SRT = f"{OUTPUT_DIR}/trans.srt"
 def check_gpu_available():
     try:
         result = subprocess.run(['ffmpeg', '-encoders'], capture_output=True, text=True)
-        return 'h264_nvenc' in result.stdout
+        if platform.system() == 'Darwin':
+            return 'h264_videotoolbox' in result.stdout
+        else:
+            return 'h264_nvenc' in result.stdout
     except:
         return False
 
@@ -84,7 +87,24 @@ def merge_subtitles_to_video():
     ffmpeg_gpu = load_key("ffmpeg_gpu")
     if ffmpeg_gpu:
         rprint("[bold green]will use GPU acceleration.[/bold green]")
-        ffmpeg_cmd.extend(['-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
+        if platform.system() == 'Darwin':
+            video_info = get_video_info(video_file)
+            bitrate = video_info.get('bitrate')
+            pix_fmt = video_info.get('pix_fmt')
+            
+            ffmpeg_cmd.extend(['-c:v', 'h264_videotoolbox'])
+            if bitrate:
+                # Use source bitrate if available
+                ffmpeg_cmd.extend(['-b:v', str(bitrate)])
+            else:
+                ffmpeg_cmd.extend(['-q:v', '65'])
+            
+            if pix_fmt:
+                ffmpeg_cmd.extend(['-pix_fmt', pix_fmt])
+                
+            ffmpeg_cmd.extend(['-prio_speed', '1'])
+        else:
+            ffmpeg_cmd.extend(['-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
     else:
         ffmpeg_cmd.extend(['-c:v', 'libx264', '-crf', '18', '-preset', 'slow'])
     

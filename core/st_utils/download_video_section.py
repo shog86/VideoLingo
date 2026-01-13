@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import platform
 from time import sleep
 
 import streamlit as st
@@ -68,7 +69,32 @@ def convert_audio_to_video(audio_file: str) -> str:
     output_video = os.path.join(OUTPUT_DIR, 'black_screen.mp4')
     if not os.path.exists(output_video):
         print(f"🎵➡️🎬 Converting audio to video with FFmpeg ......")
-        ffmpeg_cmd = ['ffmpeg', '-y', '-f', 'lavfi', '-i', 'color=c=black:s=640x360', '-i', audio_file, '-shortest', '-c:v', 'libx264', '-c:a', 'aac', '-pix_fmt', 'yuv420p', output_video]
+        ffmpeg_cmd = ['ffmpeg', '-y', '-f', 'lavfi', '-i', 'color=c=black:s=640x360', '-i', audio_file, '-shortest']
+        
+        if load_key("ffmpeg_gpu"):
+            if platform.system() == 'Darwin':
+                video_info = get_video_info(audio_file)
+                bitrate = video_info.get('bitrate')
+                pix_fmt = video_info.get('pix_fmt')
+                
+                ffmpeg_cmd.extend(['-c:v', 'h264_videotoolbox'])
+                if bitrate:
+                    ffmpeg_cmd.extend(['-b:v', str(bitrate)])
+                else:
+                    ffmpeg_cmd.extend(['-q:v', '65'])
+                
+                if pix_fmt:
+                    ffmpeg_cmd.extend(['-pix_fmt', pix_fmt])
+                else:
+                    ffmpeg_cmd.extend(['-pix_fmt', 'yuv420p'])
+                    
+                ffmpeg_cmd.extend(['-prio_speed', '1'])
+            else:
+                ffmpeg_cmd.extend(['-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
+        else:
+            ffmpeg_cmd.extend(['-c:v', 'libx264', '-crf', '18', '-preset', 'slow'])
+            
+        ffmpeg_cmd.extend(['-c:a', 'aac', '-pix_fmt', 'yuv420p', output_video])
         subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
         print(f"🎵➡️🎬 Converted <{audio_file}> to <{output_video}> with FFmpeg\n")
         # delete audio file

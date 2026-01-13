@@ -75,7 +75,23 @@ def merge_video_audio():
 
     if load_key("ffmpeg_gpu"):
         rprint("[bold green]Using GPU acceleration...[/bold green]")
-        cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
+        if platform.system() == 'Darwin':
+            video_info = get_video_info(VIDEO_FILE)
+            bitrate = video_info.get('bitrate')
+            pix_fmt = video_info.get('pix_fmt')
+            
+            cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_videotoolbox'])
+            if bitrate:
+                cmd.extend(['-b:v', str(bitrate)])
+            else:
+                cmd.extend(['-q:v', '65'])
+            
+            if pix_fmt:
+                cmd.extend(['-pix_fmt', pix_fmt])
+                
+            cmd.extend(['-prio_speed', '1'])
+        else:
+            cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
     else:
         cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '18', '-preset', 'slow'])
     
