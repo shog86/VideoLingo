@@ -6,6 +6,7 @@ try:
     from .video_utils import get_video_info
     from rich import print as rprint
 except ImportError:
-    pass
+    import traceback
+    traceback.print_exc()
 
 __all__ = ["ask_gpt", "except_handler", "check_file_exists", "load_key", "update_key", "rprint", "get_joiner", "get_video_info"]

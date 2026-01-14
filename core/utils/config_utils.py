@@ -11,7 +11,31 @@ yaml.preserve_quotes = True
 # load & update config
 # -----------------------
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ENV_MAPPING = {
+    "api.key": "API_KEY",
+    "api.huggingface_token": "HUGGINGFACE_TOKEN",
+    "whisper.whisperX_302_api_key": "WHISPERX_302_API_KEY",
+    "whisper.elevenlabs_api_key": "ELEVENLABS_API_KEY",
+    "sf_fish_tts.api_key": "SF_FISH_TTS_API_KEY",
+    "openai_tts.api_key": "OPENAI_TTS_API_KEY",
+    "azure_tts.api_key": "AZURE_TTS_API_KEY",
+    "fish_tts.api_key": "FISH_TTS_API_KEY",
+    "sf_cosyvoice2.api_key": "SF_COSYVOICE2_API_KEY",
+    "f5tts.302_api": "F5TTS_302_API"
+}
+
 def load_key(key):
+    # Check if the key has a corresponding environment variable
+    if key in ENV_MAPPING:
+        env_val = os.getenv(ENV_MAPPING[key])
+        if env_val and env_val.strip():
+            return env_val
+
     with lock:
         with open(CONFIG_PATH, 'r', encoding='utf-8') as file:
             data = yaml.load(file)

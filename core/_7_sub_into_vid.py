@@ -81,7 +81,7 @@ def merge_subtitles_to_video():
             f"subtitles={TRANS_SRT}:force_style='FontSize={TRANS_FONT_SIZE},FontName={TRANS_FONT_NAME},"
             f"PrimaryColour={TRANS_FONT_COLOR},OutlineColour={TRANS_OUTLINE_COLOR},OutlineWidth={TRANS_OUTLINE_WIDTH},"
             f"BackColour={TRANS_BACK_COLOR},Alignment=2,MarginV=27,BorderStyle=4'"
-        ).encode('utf-8'),
+        ),
     ]
 
     ffmpeg_gpu = load_key("ffmpeg_gpu")
@@ -99,9 +99,9 @@ def merge_subtitles_to_video():
             else:
                 ffmpeg_cmd.extend(['-q:v', '65'])
             
-            if pix_fmt:
-                ffmpeg_cmd.extend(['-pix_fmt', pix_fmt])
-                
+            # Force nv12 for hardware acceleration efficiency on macOS
+            ffmpeg_cmd.extend(['-pix_fmt', 'nv12'])
+            
             ffmpeg_cmd.extend(['-prio_speed', '1'])
         else:
             ffmpeg_cmd.extend(['-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
@@ -110,6 +110,8 @@ def merge_subtitles_to_video():
     
     ffmpeg_cmd.extend(['-y', OUTPUT_VIDEO])
 
+    rprint(f"[bold blue]Executing FFmpeg command:[/bold blue] {' '.join(ffmpeg_cmd)}")
+    
     rprint("🎬 Start merging subtitles to video...")
     start_time = time.time()
     process = subprocess.Popen(ffmpeg_cmd)

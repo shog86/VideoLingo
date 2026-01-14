@@ -33,8 +33,14 @@ def text_processing_section():
         """, unsafe_allow_html=True)
 
         if not os.path.exists(SUB_VIDEO):
+            # Allow skipping transcription and translation if files exist
+            if os.path.exists("output/src.srt") and os.path.exists("output/trans.srt"):
+                burn_only = st.checkbox(t("Burn Subtitles Only (Use existing srt files)"), value=False)
+            else:
+                burn_only = False
+            
             if st.button(t("Start Processing Subtitles"), key="text_processing_button"):
-                process_text()
+                process_text(burn_only)
                 st.rerun()
         else:
             if load_key("burn_subtitles"):
@@ -46,20 +52,22 @@ def text_processing_section():
                 st.rerun()
             return True
 
-def process_text():
-    with st.spinner(t("Using Whisper for transcription...")):
-        _2_asr.transcribe()
-    with st.spinner(t("Splitting long sentences...")):  
-        _3_1_split_nlp.split_by_spacy()
-        _3_2_split_meaning.split_sentences_by_meaning()
-    with st.spinner(t("Summarizing and translating...")):
-        _4_1_summarize.get_summary()
-        if load_key("pause_before_translate"):
-            input(t("⚠️ PAUSE_BEFORE_TRANSLATE. Go to `output/log/terminology.json` to edit terminology. Then press ENTER to continue..."))
-        _4_2_translate.translate_all()
-    with st.spinner(t("Processing and aligning subtitles...")): 
-        _5_split_sub.split_for_sub_main()
-        _6_gen_sub.align_timestamp_main()
+def process_text(burn_only=False):
+    if not burn_only:
+        with st.spinner(t("Using Whisper for transcription...")):
+            _2_asr.transcribe()
+        with st.spinner(t("Splitting long sentences...")):  
+            _3_1_split_nlp.split_by_spacy()
+            _3_2_split_meaning.split_sentences_by_meaning()
+        with st.spinner(t("Summarizing and translating...")):
+            _4_1_summarize.get_summary()
+            if load_key("pause_before_translate"):
+                input(t("⚠️ PAUSE_BEFORE_TRANSLATE. Go to `output/log/terminology.json` to edit terminology. Then press ENTER to continue..."))
+            _4_2_translate.translate_all()
+        with st.spinner(t("Processing and aligning subtitles...")): 
+            _5_split_sub.split_for_sub_main()
+            _6_gen_sub.align_timestamp_main()
+            
     with st.spinner(t("Merging subtitles to video...")):
         _7_sub_into_vid.merge_subtitles_to_video()
     

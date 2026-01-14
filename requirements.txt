@@ -28,3 +28,4 @@ xmltodict
 mlx-whisper
 mlx
 pyannote.audio
+python-dotenv

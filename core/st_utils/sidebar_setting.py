@@ -1,4 +1,5 @@
 import streamlit as st
+import platform
 from translations.translations import translate as t
 from translations.translations import DISPLAY_LANGUAGES
 from core.utils import *
@@ -81,6 +82,8 @@ def page_setting():
         burn_subtitles = st.toggle(t("Burn-in Subtitles"), value=load_key("burn_subtitles"), help=t("Whether to burn subtitles into the video, will increase processing time"))
         if burn_subtitles != load_key("burn_subtitles"):
             update_key("burn_subtitles", burn_subtitles)
+            if burn_subtitles and platform.system() == 'Darwin':
+                update_key("ffmpeg_gpu", True)
             st.rerun()
 
         ffmpeg_gpu = st.toggle(t("FFmpeg GPU Acceleration"), value=load_key("ffmpeg_gpu"), help=t("Use GPU for video encoding (h264_nvenc/VideoToolbox)"))

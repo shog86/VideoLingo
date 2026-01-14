@@ -59,6 +59,7 @@
     "Start Processing Subtitles": "開始處理字幕",
     "Download All Srt Files": "下載所有Srt檔案",
     "Archive to 'history'": "歸檔到'history'",
+    "Burn Subtitles Only (Use existing srt files)": "僅重新燒錄字幕 (使用現有的 SRT 檔案)",
     "Using Whisper for transcription...": "正在使用Whisper進行轉錄...",
     "Splitting long sentences...": "正在分割長句...",
     "Summarizing and translating...": "正在總結和翻譯...",

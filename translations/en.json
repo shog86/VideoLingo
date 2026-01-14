@@ -59,6 +59,7 @@
     "Start Processing Subtitles": "Start Processing Subtitles",
     "Download All Srt Files": "Download All Srt Files",
     "Archive to 'history'": "Archive to 'history'",
+    "Burn Subtitles Only (Use existing srt files)": "Burn Subtitles Only (Use existing srt files)",
     "Using Whisper for transcription...": "Using Whisper for transcription...",
     "Splitting long sentences...": "Splitting long sentences...",
     "Summarizing and translating...": "Summarizing and translating...",

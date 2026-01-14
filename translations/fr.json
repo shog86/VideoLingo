@@ -91,6 +91,7 @@
     "Start Processing Subtitles": "Démarrer le traitement des sous-titres",
     "Download All Srt Files": "Télécharger tous les fichiers Srt",
     "Archive to 'history'": "Archiver dans 'history'",
+    "Burn Subtitles Only (Use existing srt files)": "Incruster uniquement les sous-titres (Utiliser les fichiers srt existants)",
     "Using Whisper for transcription...": "Utilisation de Whisper pour la transcription...",
     "Splitting long sentences...": "Division des longues phrases...",
     "Summarizing and translating...": "Résumé et traduction en cours...",

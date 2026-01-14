@@ -121,7 +121,7 @@ def main():
     # Check environment before proceeding
     check_environment()
 
-    install_package("requests", "rich", "ruamel.yaml", "InquirerPy")
+    install_package("requests", "rich", "ruamel.yaml", "InquirerPy", "python-dotenv")
     from rich.console import Console
     from rich.panel import Panel
     from rich.box import DOUBLE

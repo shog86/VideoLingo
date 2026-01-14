@@ -24,7 +24,7 @@ max_workers: 4
 target_language: '简体中文'
 
 # Whether to use Demucs for vocal separation before transcription
-demucs: true
+demucs: false
 
 whisper:
   # ["large-v3", "large-v3-turbo"]. For MLX, standard names or path to MLX weights.
@@ -44,7 +44,7 @@ burn_subtitles: false
 
 ## ======================== Advanced Settings ======================== ##
 # *🔬 h264_nvenc GPU acceleration for ffmpeg, make sure your GPU supports it
-ffmpeg_gpu: false
+ffmpeg_gpu: true
 
 # *Youtube settings
 youtube:
