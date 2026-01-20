@@ -19,6 +19,8 @@ def valid_translate_result(result: dict, required_keys: list, required_sub_keys:
     return {"status": "success", "message": "Translation completed"}
 
 def translate_lines(lines, previous_content_prompt, after_cotent_prompt, things_to_note_prompt, summary_prompt, index = 0):
+    if not lines or not lines.strip():
+        return "", ""
     shared_prompt = generate_shared_prompt(previous_content_prompt, after_cotent_prompt, summary_prompt, things_to_note_prompt)
 
     # Retry translation if the length of the original text and the translated text are not the same, or if the specified key is missing

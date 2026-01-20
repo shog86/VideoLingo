@@ -155,14 +155,28 @@ def process_transcription(result: Dict) -> pd.DataFrame:
 def save_results(df: pd.DataFrame):
     os.makedirs('output/log', exist_ok=True)
 
-    # Remove rows where 'text' is empty
+    # 1. Remove rows where 'text' is empty or just whitespace
     initial_rows = len(df)
-    df = df[df['text'].str.len() > 0]
+    df = df[df['text'].str.strip().str.len() > 0]
+    
+    # 2. Filter out common ASR hallucinations (e.g., repetitive characters)
+    # Repetitive characters filter: if a single character is repeated more than 3 times
+    def is_repetitive(text):
+        text = text.strip()
+        if len(text) > 3 and len(set(text)) == 1:
+            return True
+        return False
+    
+    df = df[~df['text'].apply(is_repetitive)]
+
+    # 3. Filter out rows where start == end (usually hallucinations)
+    df = df[df['start'] != df['end']]
+
     removed_rows = initial_rows - len(df)
     if removed_rows > 0:
-        rprint(f"[blue]ℹ️ Removed {removed_rows} row(s) with empty text.[/blue]")
+        rprint(f"[blue]ℹ️ Removed {removed_rows} row(s) of empty or junk text.[/blue]")
     
-    # Check for and remove words longer than 20 characters
+    # 4. Check for and remove words longer than 30 characters
     long_words = df[df['text'].str.len() > 30]
     if not long_words.empty:
         rprint(f"[yellow]⚠️ Warning: Detected {len(long_words)} word(s) longer than 30 characters. These will be removed.[/yellow]")
