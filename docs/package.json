@@ -35,5 +35,15 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.2"
+  },
+  "overrides": {
+    "cross-spawn": "^7.0.6",
+    "diff": "^8.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "cross-spawn": "^7.0.6",
+      "diff": "^8.0.3"
+    }
   }
 }

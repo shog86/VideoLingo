@@ -6,10 +6,33 @@
 echo "🔍 初始化 Conda..."
 
 # 加载 Conda 配置
-if [ -f "/Users/shog/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "/Users/shog/miniconda3/etc/profile.d/conda.sh"
+if [ -n "$CONDA_EXE" ]; then
+    CONDA_ROOT=$(dirname $(dirname "$CONDA_EXE"))
+elif [ -d "$HOME/miniconda3" ]; then
+    CONDA_ROOT="$HOME/miniconda3"
+elif [ -d "$HOME/anaconda3" ]; then
+    CONDA_ROOT="$HOME/anaconda3"
+elif [ -d "/opt/homebrew/anaconda3" ]; then
+    CONDA_ROOT="/opt/homebrew/anaconda3"
+elif [ -d "/opt/homebrew/miniconda3" ]; then
+    CONDA_ROOT="/opt/homebrew/miniconda3"
+fi
+
+if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+    source "$CONDA_ROOT/etc/profile.d/conda.sh"
 else
-    echo "❌ 错误: 找不到 Conda 配置文件"
+    # Try which conda
+    CONDA_PATH=$(which conda)
+    if [ -n "$CONDA_PATH" ]; then
+        CONDA_ROOT=$(dirname $(dirname "$CONDA_PATH"))
+        if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+            source "$CONDA_ROOT/etc/profile.d/conda.sh"
+        fi
+    fi
+fi
+
+if ! command -v conda &> /dev/null; then
+    echo "❌ 错误: 找不到 Conda 命令"
     exit 1
 fi
 
