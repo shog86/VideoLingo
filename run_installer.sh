@@ -8,14 +8,14 @@ echo "🔍 初始化 Conda..."
 # 加载 Conda 配置
 if [ -n "$CONDA_EXE" ]; then
     CONDA_ROOT=$(dirname $(dirname "$CONDA_EXE"))
-elif [ -d "$HOME/miniconda3" ]; then
-    CONDA_ROOT="$HOME/miniconda3"
-elif [ -d "$HOME/anaconda3" ]; then
-    CONDA_ROOT="$HOME/anaconda3"
 elif [ -d "/opt/homebrew/anaconda3" ]; then
     CONDA_ROOT="/opt/homebrew/anaconda3"
 elif [ -d "/opt/homebrew/miniconda3" ]; then
     CONDA_ROOT="/opt/homebrew/miniconda3"
+elif [ -d "$HOME/anaconda3" ]; then
+    CONDA_ROOT="$HOME/anaconda3"
+elif [ -d "$HOME/miniconda3" ]; then
+    CONDA_ROOT="$HOME/miniconda3"
 fi
 
 if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
@@ -38,7 +38,20 @@ fi
 
 echo "✅ Conda 已加载"
 
-# 激活 videolingo 环境
+# 检查并激活 videolingo 环境
+echo "🔧 检查 videolingo 环境..."
+
+if conda info --envs | grep -q "^videolingo "; then
+    echo "✅ 找到 videolingo 环境"
+else
+    echo "创建 videolingo 环境 (Python 3.10)..."
+    conda create -n videolingo python=3.10 -y
+    if [ $? -ne 0 ]; then
+        echo "❌ 错误: 无法创建 videolingo 环境"
+        exit 1
+    fi
+fi
+
 echo "🔧 激活 videolingo 环境..."
 conda activate videolingo
 

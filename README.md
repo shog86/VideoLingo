@@ -91,16 +91,8 @@ https://github.com/user-attachments/assets/47d965b2-b4ab-4a0b-9d08-b49a7bf3508c
 
 Meet any problem? Chat with our free online AI agent [**here**](https://share.fastgpt.in/chat/share?shareId=066w11n3r9aq6879r4z0v9rh) to help you.
 
-> **Note:** For Windows users with NVIDIA GPU, follow these steps before installation:
-> 1. Install [CUDA Toolkit 12.6](https://developer.download.nvidia.com/compute/cuda/12.6.0/local_installers/cuda_12.6.0_560.76_windows.exe)
-> 2. Install [CUDNN 9.3.0](https://developer.download.nvidia.com/compute/cudnn/9.3.0/local_installers/cudnn_9.3.0_windows.exe)
-> 3. Add `C:\Program Files\NVIDIA\CUDNN\v9.3\bin\12.6` to your system PATH
-> 4. Restart your computer
-
-> **Note:** FFmpeg is required. Please install it via package managers:
-> - Windows: ```choco install ffmpeg``` (via [Chocolatey](https://chocolatey.org/))
+> **Note:** FFmpeg is required. Please install it via Homebrew:
 > - macOS: ```brew install ffmpeg``` (via [Homebrew](https://brew.sh/))
-> - Linux: ```sudo apt install ffmpeg``` (Debian/Ubuntu)
 
 1. Clone the repository
 
@@ -109,30 +101,15 @@ git clone https://github.com/Huanshere/VideoLingo.git
 cd VideoLingo
 ```
 
-2. Install dependencies(requires `python>=3.10`)
+2. Install dependencies (requires `conda`)
 
 ```bash
-conda create -n videolingo python=3.13 -y
-conda activate videolingo
-python install.py   # Now supports optional model pre-downloading!
+bash run_installer.sh
 ```
 
 3. Start the application
-- On Mac/Linux:
-```bash
-./OneKeyStart.sh
-```
-- Or manually:
 ```bash
 streamlit run st.py
-```
-
-### Docker
-Alternatively, you can use Docker (requires CUDA 12.4 and NVIDIA Driver version >550), see [Docker docs](/docs/pages/docs/docker.en-US.md):
-
-```bash
-docker build -t videolingo .
-docker run -d -p 8501:8501 --gpus all videolingo
 ```
 
 ## APIs

@@ -2,7 +2,6 @@ import os
 import re
 import shutil
 import subprocess
-import platform
 from time import sleep
 
 import streamlit as st
@@ -72,25 +71,18 @@ def convert_audio_to_video(audio_file: str) -> str:
         ffmpeg_cmd = ['ffmpeg', '-y', '-f', 'lavfi', '-i', 'color=c=black:s=640x360', '-i', audio_file, '-shortest']
         
         if load_key("ffmpeg_gpu"):
-            if platform.system() == 'Darwin':
-                video_info = get_video_info(audio_file)
-                bitrate = video_info.get('bitrate')
-                pix_fmt = video_info.get('pix_fmt')
-                
-                ffmpeg_cmd.extend(['-c:v', 'h264_videotoolbox'])
-                if bitrate:
-                    ffmpeg_cmd.extend(['-b:v', str(bitrate)])
-                else:
-                    ffmpeg_cmd.extend(['-q:v', '65'])
-                
-                if pix_fmt:
-                    ffmpeg_cmd.extend(['-pix_fmt', pix_fmt])
-                else:
-                    ffmpeg_cmd.extend(['-pix_fmt', 'yuv420p'])
-                    
-                ffmpeg_cmd.extend(['-prio_speed', '1'])
+            rprint("[bold green]Using GPU acceleration (VideoToolbox)...[/bold green]")
+            video_info = get_video_info(audio_file)
+            bitrate = video_info.get('bitrate')
+            
+            ffmpeg_cmd.extend(['-c:v', 'h264_videotoolbox'])
+            if bitrate:
+                ffmpeg_cmd.extend(['-b:v', str(bitrate)])
             else:
-                ffmpeg_cmd.extend(['-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
+                ffmpeg_cmd.extend(['-q:v', '65'])
+            
+            ffmpeg_cmd.extend(['-pix_fmt', 'yuv420p'])
+            ffmpeg_cmd.extend(['-prio_speed', '1'])
         else:
             ffmpeg_cmd.extend(['-c:v', 'libx264', '-crf', '18', '-preset', 'slow'])
             

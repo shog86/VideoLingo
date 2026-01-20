@@ -10,14 +10,9 @@ TRANS_FONT_SIZE = 17
 FONT_NAME = 'Arial'
 TRANS_FONT_NAME = 'Arial'
 
-# Linux need to install google noto fonts: apt-get install fonts-noto
-if platform.system() == 'Linux':
-    FONT_NAME = 'NotoSansCJK-Regular'
-    TRANS_FONT_NAME = 'NotoSansCJK-Regular'
-# Mac OS has different font names
-elif platform.system() == 'Darwin':
-    FONT_NAME = 'Arial Unicode MS'
-    TRANS_FONT_NAME = 'PingFang SC'
+# Default to macOS font settings
+FONT_NAME = 'Arial Unicode MS'
+TRANS_FONT_NAME = 'PingFang SC'
 
 SRC_FONT_COLOR = '&HFFFFFF'
 SRC_OUTLINE_COLOR = '&H000000'
@@ -36,10 +31,7 @@ TRANS_SRT = f"{OUTPUT_DIR}/trans.srt"
 def check_gpu_available():
     try:
         result = subprocess.run(['ffmpeg', '-encoders'], capture_output=True, text=True)
-        if platform.system() == 'Darwin':
-            return 'h264_videotoolbox' in result.stdout
-        else:
-            return 'h264_nvenc' in result.stdout
+        return 'h264_videotoolbox' in result.stdout
     except:
         return False
 
@@ -86,25 +78,20 @@ def merge_subtitles_to_video():
 
     ffmpeg_gpu = load_key("ffmpeg_gpu")
     if ffmpeg_gpu:
-        rprint("[bold green]will use GPU acceleration.[/bold green]")
-        if platform.system() == 'Darwin':
-            video_info = get_video_info(video_file)
-            bitrate = video_info.get('bitrate')
-            pix_fmt = video_info.get('pix_fmt')
-            
-            ffmpeg_cmd.extend(['-c:v', 'h264_videotoolbox'])
-            if bitrate:
-                # Use source bitrate if available
-                ffmpeg_cmd.extend(['-b:v', str(bitrate)])
-            else:
-                ffmpeg_cmd.extend(['-q:v', '65'])
-            
-            # Force nv12 for hardware acceleration efficiency on macOS
-            ffmpeg_cmd.extend(['-pix_fmt', 'nv12'])
-            
-            ffmpeg_cmd.extend(['-prio_speed', '1'])
+        rprint("[bold green]will use GPU acceleration (VideoToolbox).[/bold green]")
+        video_info = get_video_info(video_file)
+        bitrate = video_info.get('bitrate')
+        
+        ffmpeg_cmd.extend(['-c:v', 'h264_videotoolbox'])
+        if bitrate:
+            # Use source bitrate if available
+            ffmpeg_cmd.extend(['-b:v', str(bitrate)])
         else:
-            ffmpeg_cmd.extend(['-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
+            ffmpeg_cmd.extend(['-q:v', '65'])
+        
+        # Force nv12 for hardware acceleration efficiency on macOS
+        ffmpeg_cmd.extend(['-pix_fmt', 'nv12'])
+        ffmpeg_cmd.extend(['-prio_speed', '1'])
     else:
         ffmpeg_cmd.extend(['-c:v', 'libx264', '-crf', '18', '-preset', 'slow'])
     

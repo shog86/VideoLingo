@@ -18,10 +18,8 @@ DUB_AUDIO = 'output/dub.mp3'
 
 TRANS_FONT_SIZE = 17
 TRANS_FONT_NAME = 'Arial'
-if platform.system() == 'Linux':
-    TRANS_FONT_NAME = 'NotoSansCJK-Regular'
-if platform.system() == 'Darwin':
-    TRANS_FONT_NAME = 'Arial Unicode MS'
+# Default to macOS font settings
+TRANS_FONT_NAME = 'Arial Unicode MS'
 
 TRANS_FONT_COLOR = '&H00FFFF'
 TRANS_OUTLINE_COLOR = '&H000000'
@@ -74,24 +72,17 @@ def merge_video_audio():
     ]
 
     if load_key("ffmpeg_gpu"):
-        rprint("[bold green]Using GPU acceleration...[/bold green]")
-        if platform.system() == 'Darwin':
-            video_info = get_video_info(VIDEO_FILE)
-            bitrate = video_info.get('bitrate')
-            pix_fmt = video_info.get('pix_fmt')
-            
-            cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_videotoolbox'])
-            if bitrate:
-                cmd.extend(['-b:v', str(bitrate)])
-            else:
-                cmd.extend(['-q:v', '65'])
-            
-            if pix_fmt:
-                cmd.extend(['-pix_fmt', pix_fmt])
-                
-            cmd.extend(['-prio_speed', '1'])
+        rprint("[bold green]Using GPU acceleration (VideoToolbox)...[/bold green]")
+        video_info = get_video_info(VIDEO_FILE)
+        bitrate = video_info.get('bitrate')
+        
+        cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_videotoolbox'])
+        if bitrate:
+            cmd.extend(['-b:v', str(bitrate)])
         else:
-            cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'h264_nvenc', '-cq', '18', '-preset', 'p7'])
+            cmd.extend(['-q:v', '65'])
+            
+        cmd.extend(['-prio_speed', '1'])
     else:
         cmd.extend(['-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '18', '-preset', 'slow'])
     

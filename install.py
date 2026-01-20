@@ -15,31 +15,7 @@ __     ___     _            _     _
 def install_package(*packages):
     subprocess.check_call([sys.executable, "-m", "pip", "install", *packages])
 
-def check_nvidia_gpu():
-    install_package("pynvml")
-    import pynvml
-    from translations.translations import translate as t
-    initialized = False
-    try:
-        pynvml.nvmlInit()
-        initialized = True
-        device_count = pynvml.nvmlDeviceGetCount()
-        if device_count > 0:
-            print(t("Detected NVIDIA GPU(s)"))
-            for i in range(device_count):
-                handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-                name = pynvml.nvmlDeviceGetName(handle)
-                print(f"GPU {i}: {name}")
-            return True
-        else:
-            print(t("No NVIDIA GPU detected"))
-            return False
-    except pynvml.NVMLError:
-        print(t("No NVIDIA GPU detected or NVIDIA drivers not properly installed"))
-        return False
-    finally:
-        if initialized:
-            pynvml.nvmlShutdown()
+# Removed check_nvidia_gpu for Mac-only version
 
 def check_ffmpeg():
     from rich.console import Console
@@ -53,24 +29,14 @@ def check_ffmpeg():
         console.print(Panel(t("✅ FFmpeg is already installed"), style="green"))
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        system = platform.system()
-        install_cmd = ""
-        
-        if system == "Windows":
-            install_cmd = "choco install ffmpeg"
-            extra_note = t("Install Chocolatey first (https://chocolatey.org/)")
-        elif system == "Darwin":
-            install_cmd = "brew install ffmpeg"
-            extra_note = t("Install Homebrew first (https://brew.sh/)")
-        elif system == "Linux":
-            install_cmd = "sudo apt install ffmpeg  # Ubuntu/Debian\nsudo yum install ffmpeg  # CentOS/RHEL"
-            extra_note = t("Use your distribution's package manager")
+        install_cmd = "brew install ffmpeg"
+        extra_note = t("Install Homebrew first (https://brew.sh/)")
         
         console.print(Panel.fit(
             t("❌ FFmpeg not found\n\n") +
             f"{t('🛠️ Install using:')}\n[bold cyan]{install_cmd}[/bold cyan]\n\n" +
             f"{t('💡 Note:')}\n{extra_note}\n\n" +
-            f"{t('🔄 After installing FFmpeg, please run this installer again:')}\n[bold cyan]python install.py[/bold cyan]",
+            f"{t('🔄 After installing FFmpeg, please run this installer again:')}\n[bold cyan]bash run_installer.sh[/bold cyan]",
             style="red"
         ))
         raise SystemExit(t("FFmpeg is required. Please install it and run the installer again."))
@@ -82,40 +48,18 @@ def check_environment():
     # Check Python version
     python_version = sys.version_info
     if python_version.major != 3 or python_version.minor < 10:
-        print(f"❌ Error: Python >= 3.10 is required, but you are using Python {python_version.major}.{python_version.minor}.{python_version.micro}")
-        print("\n📝 Please follow these steps:")
-        print("1. Create conda environment: conda create -n videolingo python=3.13 -y")
-        print("2. Activate environment: conda activate videolingo")
-        print("3. Run installer again: python install.py")
+        from translations.translations import translate as t
+        print(f"❌ {t('Error: Python >= 3.10 is required, but you are using Python')} {python_version.major}.{python_version.minor}.{python_version.micro}")
+        print(f"\n📝 {t('Please run [bold cyan]bash run_installer.sh[/bold cyan] to setup the correct environment.')}")
         sys.exit(1)
 
     # Check if in conda environment
     conda_prefix = os.environ.get('CONDA_PREFIX')
-    if not conda_prefix:
-        print("⚠️  Warning: Not running in a conda environment")
-        print("\n📝 Recommended steps:")
-        print("1. Install Miniconda or Anaconda")
-        print("2. Create environment: conda create -n videolingo python=3.13 -y")
-        print("3. Activate environment: conda activate videolingo")
-        print("4. Run installer again: python install.py")
-
-        # Ask user if they want to continue anyway
-        response = input("\nDo you want to continue anyway? (not recommended) [y/N]: ")
-        if response.lower() != 'y':
-            sys.exit(1)
-    else:
-        # Check if in videolingo environment
-        env_name = os.path.basename(conda_prefix)
-        if env_name != 'videolingo':
-            print(f"⚠️  Warning: You are in conda environment '{env_name}', not 'videolingo'")
-            print("\n📝 Recommended steps:")
-            print("1. Create videolingo environment: conda create -n videolingo python=3.13 -y")
-            print("2. Activate environment: conda activate videolingo")
-            print("3. Run installer again: python install.py")
-
-            response = input("\nDo you want to continue anyway? (not recommended) [y/N]: ")
-            if response.lower() != 'y':
-                sys.exit(1)
+    if not conda_prefix or os.path.basename(conda_prefix) != 'videolingo':
+        from translations.translations import translate as t
+        print(f"⚠️  {t('Warning: Not running in videolingo conda environment')}")
+        print(f"\n📝 {t('Please run [bold cyan]bash run_installer.sh[/bold cyan] to activate the environment.')}")
+        sys.exit(1)
 
 def main():
     # Check environment before proceeding
@@ -165,27 +109,15 @@ def main():
         choose_mirror()
 
     # Detect system and GPU
-    has_gpu = platform.system() != 'Darwin' and check_nvidia_gpu()
-    if has_gpu:
-        console.print(Panel(t("🎮 NVIDIA GPU detected, installing CUDA version of PyTorch..."), style="cyan"))
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "torch", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cu118"])
-    else:
-        system_name = "🍎 MacOS" if platform.system() == 'Darwin' else "💻 No NVIDIA GPU"
-        console.print(Panel(t(f"{system_name} detected, installing PyTorch..."), style="cyan"))
+    # MacOS optimized installation
+    console.print(Panel(t("🍎 Installing MacOS optimized dependencies..."), style="cyan"))
+    try:
+        subprocess.check_call(["conda", "install", "-c", "conda-forge", "pkg-config", "ffmpeg>=6.0.0", "-y"])
+        console.print(Panel(t("✅ Successfully installed base packages via conda"), style="green"))
+        console.print(Panel(t("🍎 Installing PyTorch for MacOS..."), style="cyan"))
         subprocess.check_call([sys.executable, "-m", "pip", "install", "torch", "torchaudio"])
-
-    # macOS-specific: Install av and moviepy via conda to avoid FFmpeg compatibility issues
-    if platform.system() == 'Darwin':
-        console.print(Panel(t("🍎 Installing dependencies via conda for macOS optimize..."), style="cyan"))
-        try:
-            conda_prefix = os.environ.get('CONDA_PREFIX')
-            if conda_prefix:
-                subprocess.check_call(["conda", "install", "-c", "conda-forge", "pkg-config", "ffmpeg>=6.0.0", "-y"])
-                console.print(Panel(t("✅ Successfully installed base packages via conda"), style="green"))
-            else:
-                console.print(Panel(t("⚠️ Warning: Not running in conda environment."), style="yellow"))
-        except Exception as e:
-            console.print(Panel(t(f"⚠️ Warning: Failed to install via conda: {e}"), style="yellow"))
+    except Exception as e:
+        console.print(Panel(t("⚠️ Warning: Failed to install via conda or pip: {e}").format(e=e), style="yellow"))
 
     @except_handler("Failed to install project")
     def install_requirements():
@@ -206,26 +138,6 @@ def main():
         # 4. Ensure torchaudio consistency (last step)
         subprocess.check_call([sys.executable, "-m", "pip", "install", "torchaudio", "--no-deps"], env=env)
 
-    @except_handler("Failed to install Noto fonts")
-    def install_noto_font():
-        # Detect Linux distribution type
-        if os.path.exists('/etc/debian_version'):
-            # Debian/Ubuntu systems
-            cmd = ['sudo', 'apt-get', 'install', '-y', 'fonts-noto']
-            pkg_manager = "apt-get"
-        elif os.path.exists('/etc/redhat-release'):
-            # RHEL/CentOS/Fedora systems
-            cmd = ['sudo', 'yum', 'install', '-y', 'google-noto*']
-            pkg_manager = "yum"
-        else:
-            console.print(t("Warning: Unrecognized Linux distribution, please install Noto fonts manually"), style="yellow")
-            return
-
-        subprocess.run(cmd, check=True)
-        console.print(t("✅ Successfully installed Noto fonts using {pkg_manager}").format(pkg_manager=pkg_manager), style="green")
-
-    if platform.system() == 'Linux':
-        install_noto_font()
     
     install_requirements()
     
@@ -305,7 +217,7 @@ except Exception as e:
     panel2_text = (
         t("If the application fails to start:") + "\n" +
         "1. " + t("Check your network connection") + "\n" +
-        "2. " + t("Re-run the installer: [bold]python install.py[/bold]")
+        "2. " + t("Re-run the installer: [bold]bash run_installer.sh[/bold]")
     )
     console.print(Panel(panel2_text, style="yellow"))
 
