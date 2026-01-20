@@ -1,4 +1,5 @@
 import os
+import ast
 import pandas as pd
 import subprocess
 from pydub import AudioSegment
@@ -53,20 +54,15 @@ def process_audio_segment(audio_file):
 
 def merge_audio_segments(audios, new_sub_times, sample_rate):
     merged_audio = AudioSegment.silent(duration=0, frame_rate=sample_rate)
-    
+
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(), TaskProgressColumn()) as progress:
         merge_task = progress.add_task("🎵 Merging audio segments...", total=len(audios))
-        
+
         for i, (audio_file, time_range) in enumerate(zip(audios, new_sub_times)):
-            if not os.path.exists(audio_file):
-                console.print(f"[bold yellow]⚠️  Warning: File {audio_file} does not exist, skipping...[/bold yellow]")
-                progress.advance(merge_task)
-                continue
-                
-            audio_segment = process_audio_segment(audio_file)
             start_time, end_time = time_range
-            
-            # Add silence segment
+            expected_seg_dur = max(0.0, end_time - start_time)
+
+            # Add silence segment to reach current start_time
             if i > 0:
                 prev_end = new_sub_times[i-1][1]
                 silence_duration = start_time - prev_end
@@ -76,10 +72,21 @@ def merge_audio_segments(audios, new_sub_times, sample_rate):
             elif start_time > 0:
                 silence = AudioSegment.silent(duration=int(start_time * 1000), frame_rate=sample_rate)
                 merged_audio += silence
-                
+
+            # Keep timeline aligned even if file missing
+            if not os.path.exists(audio_file):
+                console.print(
+                    f"[bold yellow]⚠️  Warning: File {audio_file} does not exist; inserting {expected_seg_dur:.2f}s silence to preserve timing...[/bold yellow]"
+                )
+                if expected_seg_dur > 0:
+                    merged_audio += AudioSegment.silent(duration=int(expected_seg_dur * 1000), frame_rate=sample_rate)
+                progress.advance(merge_task)
+                continue
+
+            audio_segment = process_audio_segment(audio_file)
             merged_audio += audio_segment
             progress.advance(merge_task)
-    
+
     return merged_audio
 
 def create_srt_subtitle():

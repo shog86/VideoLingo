@@ -1,6 +1,7 @@
 import os
 import time
 import shutil
+import ast
 import subprocess
 from typing import Tuple
 
@@ -27,24 +28,68 @@ def parse_df_srt_time(time_str: str) -> float:
     seconds, milliseconds = seconds.split('.')
     return int(hours) * 3600 + int(minutes) * 60 + int(seconds) + int(milliseconds) / 1000
 
+def _build_atempo_filter(speed_factor: float) -> str:
+    """Build an ffmpeg atempo filter chain.
+
+    Notes:
+        ffmpeg's `atempo` supports only 0.5~2.0 per filter.
+        For factors outside the range we chain multiple atempo filters.
+    """
+    if speed_factor <= 0:
+        raise ValueError(f"speed_factor must be > 0, got {speed_factor}")
+
+    sf = float(speed_factor)
+    factors = []
+
+    # Decompose into a product of factors within [0.5, 2.0]
+    while sf > 2.0:
+        factors.append(2.0)
+        sf /= 2.0
+    while sf < 0.5:
+        factors.append(0.5)
+        sf /= 0.5  # == sf *= 2
+
+    # Append the remainder (or drop if ~1)
+    if abs(sf - 1.0) >= 1e-4:
+        factors.append(sf)
+
+    if not factors:
+        return "atempo=1.0"
+
+    # Example: "atempo=2.0,atempo=2.0,atempo=1.25"
+    return ",".join([f"atempo={f:.6f}".rstrip('0').rstrip('.') for f in factors])
+
+
 def adjust_audio_speed(input_file: str, output_file: str, speed_factor: float) -> None:
-    """Adjust audio speed and handle edge cases"""
+    """Adjust audio speed and handle edge cases.
+
+    Uses an `atempo` chain to support arbitrary speed_factor.
+    """
     # If the speed factor is close to 1, directly copy the file
     if abs(speed_factor - 1.0) < 0.001:
         shutil.copy2(input_file, output_file)
         return
-        
-    atempo = speed_factor
-    cmd = ['ffmpeg', '-i', input_file, '-filter:a', f'atempo={atempo}', '-y', output_file]
+
+    atempo_filter = _build_atempo_filter(speed_factor)
+
+    cmd = [
+        'ffmpeg', '-y',
+        '-i', input_file,
+        '-filter:a', atempo_filter,
+        output_file
+    ]
+
     input_duration = get_audio_duration(input_file)
     max_retries = 2
     for attempt in range(max_retries):
         try:
-            subprocess.run(cmd, check=True, stderr=subprocess.PIPE)
+            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output_duration = get_audio_duration(output_file)
             expected_duration = input_duration / speed_factor
             diff = output_duration - expected_duration
-            # If the output duration exceeds the expected duration, but the input audio is less than 3 seconds, and the error is within 0.1 seconds, truncate to the expected length
+
+            # If the output duration exceeds the expected duration, but the input audio is less than 3 seconds,
+            # and the error is within 0.1 seconds, truncate to the expected length
             if output_duration >= expected_duration * 1.02 and input_duration < 3 and diff <= 0.1:
                 audio = AudioSegment.from_wav(output_file)
                 trimmed_audio = audio[:(expected_duration * 1000)]  # pydub uses milliseconds
@@ -52,7 +97,11 @@ def adjust_audio_speed(input_file: str, output_file: str, speed_factor: float) -
                 print(f"✂️ Trimmed to expected duration: {expected_duration:.2f} seconds")
                 return
             elif output_duration >= expected_duration * 1.02:
-                raise Exception(f"Audio duration abnormal: input file={input_file}, output file={output_file}, speed factor={speed_factor}, input duration={input_duration:.2f}s, output duration={output_duration:.2f}s")
+                raise Exception(
+                    f"Audio duration abnormal: input file={input_file}, output file={output_file}, "
+                    f"speed factor={speed_factor}, input duration={input_duration:.2f}s, "
+                    f"output duration={output_duration:.2f}s"
+                )
             return
         except subprocess.CalledProcessError as e:
             if attempt < max_retries - 1:
