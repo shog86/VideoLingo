@@ -114,7 +114,7 @@ def adjust_audio_speed(input_file: str, output_file: str, speed_factor: float) -
 def process_row(row: pd.Series, tasks_df: pd.DataFrame) -> Tuple[int, float]:
     """Helper function for processing single row data"""
     number = row['number']
-    lines = eval(row['lines']) if isinstance(row['lines'], str) else row['lines']
+    lines = ast.literal_eval(row['lines']) if isinstance(row['lines'], str) else row['lines']
     real_dur = 0
     for line_index, line in enumerate(lines):
         temp_file = TEMP_FILE_TEMPLATE.format(f"{number}_{line_index}")
@@ -211,7 +211,7 @@ def merge_chunks(tasks_df: pd.DataFrame) -> pd.DataFrame:
                     cur_time += chunk_df.iloc[i-1]['gap']/speed_factor
                 new_sub_times = []
                 number = row['number']
-                lines = eval(row['lines']) if isinstance(row['lines'], str) else row['lines']
+                lines = ast.literal_eval(row['lines']) if isinstance(row['lines'], str) else row['lines']
                 for line_index, line in enumerate(lines):
                     # 🔄 Step2: Start speed change and save as OUTPUT_FILE_TEMPLATE
                     temp_file = TEMP_FILE_TEMPLATE.format(f"{number}_{line_index}")
@@ -233,7 +233,7 @@ def merge_chunks(tasks_df: pd.DataFrame) -> pd.DataFrame:
                     rprint(f"[yellow]⚠️ Chunk {chunk_start} to {index} exceeds by {time_diff:.3f}s, truncating last audio[/yellow]")
                     # Get the last audio file
                     last_number = tasks_df.iloc[index]['number']
-                    last_lines = eval(tasks_df.iloc[index]['lines']) if isinstance(tasks_df.iloc[index]['lines'], str) else tasks_df.iloc[index]['lines']
+                    last_lines = ast.literal_eval(tasks_df.iloc[index]['lines']) if isinstance(tasks_df.iloc[index]['lines'], str) else tasks_df.iloc[index]['lines']
                     last_line_index = len(last_lines) - 1
                     last_file = OUTPUT_FILE_TEMPLATE.format(f"{last_number}_{last_line_index}")
                     
